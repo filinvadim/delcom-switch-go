@@ -3,6 +3,7 @@ package delcom_switch_go
 import (
 	"errors"
 	"github.com/karalabe/hid"
+	"runtime"
 )
 
 var (
@@ -28,8 +29,17 @@ type DelcomSwitch struct {
 }
 
 func NewSwitch() (*DelcomSwitch, error) {
-	var info hid.DeviceInfo
+	var (
+		info hid.DeviceInfo
+		product  = ProductType
+	)
 
+	// FIXME karalabe/hid lib marshalling problem: linux hid devices doesn't have 'Product' field because it's called 'iProduct'
+	if runtime.GOOS == "linux" {
+		product = ""
+	}
+
+	// also will cause if CGO isn't enabled or app wasn't properly cross-compiled
 	if !hid.Supported() {
 		return nil, hid.ErrUnsupportedPlatform
 	}
@@ -38,8 +48,9 @@ func NewSwitch() (*DelcomSwitch, error) {
 	if len(delkomInfos) == 0 {
 		return nil, ErrNoDelcomDevices
 	}
+
 	for _, di := range delkomInfos {
-		if di.Product == ProductType {
+		if di.Product == product {
 			info = di
 			break
 		}
@@ -60,6 +71,9 @@ func NewSwitch() (*DelcomSwitch, error) {
 }
 
 func (btn *DelcomSwitch) IsPressed() (bool, error) {
+	if btn.dev == nil {
+		return false, ErrNoDelcomSwitch
+	}
 	data := make([]byte, maxPacketLen)
 	data[0] = readDataFlag
 
@@ -83,5 +97,8 @@ func (btn *DelcomSwitch) ackReport(flag byte) (bool, error) {
 }
 
 func (btn *DelcomSwitch) Close() error {
+	if btn.dev == nil {
+		return ErrNoDelcomSwitch
+	}
 	return btn.dev.Close()
 }
