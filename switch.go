@@ -34,7 +34,7 @@ func NewSwitch() (*DelcomSwitch, error) {
 		product  = ProductType
 	)
 
-	// FIXME karalabe/hid lib marshalling problem: linux hid devices doesn't have 'Product' field because it's called 'iProduct'
+	// FIXME linux hid devices doesn't have 'Product' field 
 	if runtime.GOOS == "linux" {
 		product = ""
 	}
